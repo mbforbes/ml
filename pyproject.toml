@@ -1,0 +1,12 @@
+[project]
+name = "ml"
+version = "0.1.0"
+description = "ML basics and refreshers"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "jaxtyping>=0.3.3",
+    "marimo>=0.18.1",
+    "torch>=2.9.1",
+    "torchvision>=0.24.1",
+]
