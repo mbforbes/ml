@@ -11,7 +11,7 @@ def _():
     return mo, torch
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
     # General Pytorch Notes
@@ -36,6 +36,22 @@ def _(mo):
     - use `.shape` instead of `size()` to get shape (`torch.Size([...]`)
     - use `size(d)` to get length of dimension d
     - 0-dimensional scalars exist (`dim() == 0`)
+
+    ## Types
+
+    `jaxtyping` is probably the best start to try to get working, but on an initial attempt Ruff thought there were type errors with its syntax, so I abandoned for now.
+
+    ## Viz
+
+    I'm most interested in using
+    - Tensorboard (builtin, classic, lightweight)
+    - Trackio
+
+    The industry standards seem to be
+    - Weights & Biases
+    - MLflow
+
+    Other newcomers like Neptune, Aim, or ClearML may be worth considering, esp. for LLM-specific viz utils (like comparing text outputs and ratings).
     """)
     return
 
