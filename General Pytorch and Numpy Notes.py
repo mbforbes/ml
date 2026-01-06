@@ -14,7 +14,7 @@ def _():
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    # General Pytorch Notes
+    # General Pytorch and Numpy Notes
 
     ## Data
 
@@ -29,6 +29,11 @@ def _(mo):
     - `outer(a, b)` computes the m x n elementwise product `a` (m) and `b` (n)
     - many diagonal-flavored utils: `diag()`, `eye()`, `triu()`, `tril()`
     - use `arange(start, end, step)` instead of `range(...)` (historical)
+
+    todo
+    - `np.repeat()`
+    - `np.random.normal` sampling over new empty broadcast dims
+    - `np.linalg.norm`
 
     ## Shapes
 
