@@ -84,6 +84,40 @@ def kmeans(points: np.ndarray, n_means: int):
     return assignments, prev_total_sq_dists
 
 
+def rand_index(
+    gold_assignments: np.ndarray, candidate_assignments: np.ndarray
+) -> float:
+    """returns rand index in [0, 1]."""
+    # for each pair of points (i, j), the candidate assignment gets a mark if it
+    # matches gold assignments in terms of whether i and j shared a cluster.
+
+    marks = 0  # just to not reuse the word "point"
+    n = len(gold_assignments)
+    g = gold_assignments
+    c = candidate_assignments
+    total = n * (n - 1) / 2
+
+    assert g.shape == c.shape
+
+    # # loop version
+    # for i in range(n):
+    #     for j in range(i + 1, n):
+    #         g_same = g[i] == g[j]
+    #         c_same = c[i] == c[j]
+    #         marks += 1 if g_same == c_same else 0
+
+    # constructing the two n^2 matrices, each entry (i,j) is whether points i and j
+    # are assigned to the same cluster. we only look above the diagonal of this
+    # symmetric matrix to only check the unique n(n-1)/2 entries where i < j. (we still
+    # compare full matrices, so offset counts by diagonal and below)
+    g_same = np.triu(g[None, :] == g[:, None], 1)
+    c_same = np.triu(c[None, :] == c[:, None], 1)
+    offset = n**2 - total
+    marks = int((g_same == c_same).sum()) - offset
+
+    return marks / total
+
+
 def main():
     # settings
     d = 2  # note that only first 2 will be plotted
@@ -91,7 +125,7 @@ def main():
     n = 100  # from each k
     trials = 10  # how many times to run each candidate k for k means
     trial_ks = 19
-    sigma = 3  # k-means assumes isotropic Gaussians (same covariance in all dims)
+    sigma = 2  # k-means assumes isotropic Gaussians (same covariance in all dims)
 
     # generate underlying data
     # k means, each in d dimensions
@@ -130,14 +164,35 @@ def main():
                 best_assignments = assignments
         results[candidate_k] = (best_sq_dist, best_assignments)
 
+    # get gold cluster assignments.
+    # do this by selecting  [0, 0, ..., 0, 1, 1, ..., k, k, ..., k] with shuffled index.
+    #
+    #                                (perfect)
+    #                    orig         kmeans
+    # idx   shuf idx   assignments  assignments
+    # ---   ---           ---          ---
+    # 0      2             0            1
+    # 1      0             0            0
+    # 2      1             1            0
+    # 3      3             1            1
+    gold_assignments = np.repeat(range(k), n)[shuffled_index]
+
     # quick hack as reminder to update this
     assert 5 * 4 == trial_ks + 1
-    fig, axes = plt.subplots(5, 4, figsize=(18, 12))
+    fig_render, axes = plt.subplots(5, 4, figsize=(18, 12))
+    fig_ksse, axes_ksse = plt.subplots()
+    k_vs_sse_data = []
     # code.interact(local=dict(globals(), **locals()))
     for i, ax in enumerate(axes.flat):
         if i == 0:
-            # gold
-            print(f"Gold total sq dists (k={k}):", gold_total_sq_dists)
+            # gold.
+            # print info
+            gold_ri = rand_index(gold_assignments, gold_assignments)
+            print(
+                f"Gold total sq dists (k={k}) (RI={gold_ri:.4f}):", gold_total_sq_dists
+            )
+
+            # plot scatter
             ax.scatter(
                 flat_points[:, 0],
                 flat_points[:, 1],
@@ -145,14 +200,36 @@ def main():
                 alpha=0.5,
             )
             ax.set_title(f"Gold assignments (k={k})")
+
+            # draw gold lines at x=k, y=gold total sq dists on k vs SSE plot
+            axes_ksse.axvline(x=k, color="gold")
+            axes_ksse.axhline(y=gold_total_sq_dists, color="gold")
         else:
-            print(f"Best estimated k={i} total sq dists:", results[i][0])
+            # k assignment.
+            # print info
+            ri = rand_index(gold_assignments, results[i][1])
+            total_sq_dist, assignments = results[i]
+            print(f"Best estimated k={i} (RI={ri:.4f}) total sq dists:", total_sq_dist)
+
+            # plot scatter
             ax.scatter(
-                shuffled_points[:, 0], shuffled_points[:, 1], c=results[i][1], alpha=0.5
+                shuffled_points[:, 0], shuffled_points[:, 1], c=assignments, alpha=0.5
             )
             ax.set_title(f"K-means (k={i})")
 
-    plt.tight_layout()
+            # save for drawing on k vs sse
+            k_vs_sse_data.append((i, total_sq_dist))
+
+        axes_ksse.plot(
+            [d[0] for d in k_vs_sse_data],
+            [d[1] for d in k_vs_sse_data],
+            marker="o",
+            linestyle="-",
+        )
+        axes_ksse.set_title("k vs Sum of Squared Error (SSE)")
+
+    fig_render.tight_layout()
+    fig_ksse.tight_layout()
     plt.show()
 
 
